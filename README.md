@@ -46,23 +46,3 @@ This extension provides quick actions to merge all tabs from another window into
 2. Enable Developer Mode.
 3. Click `Load unpacked` and select the `extension_movealltabs` folder in this repository.
 
-**Troubleshooting**
-- If a context menu doesn't appear, try reloading the extension on the `chrome://extensions/` page.
-- Check the extension background console (Service Worker) for errors via the Extensions page (click "service worker" link under the extension entry).
-
-**Contributing & Ideas**
-- Add keyboard shortcuts for merging/splitting windows.
-- Provide per-tab selection for merges (more granular than whole-window merges).
-
-**License & Author**
-- Author: repository owner
-- License: (not specified) — add a `LICENSE` file if you want an explicit license.
-
----
-
-If you'd like, I can also:
-- Add a short Turkish summary at the top.
-- Add a `CONTRIBUTING.md` and `LICENSE`.
-- Add quick screenshots for the UI.
-
-Updated README to reflect the current code and usage.
