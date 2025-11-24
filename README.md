@@ -16,7 +16,7 @@ This extension provides quick actions to merge and split windows and tabs via th
 2. Open Chrome and go to `chrome://extensions/`.
 3. Enable **Developer mode** (top-right).
 4. Click **Load unpacked** and select the project folder (`extension_movealltabs` inside the repo).
-5. The extension icon should appear in the toolbar. Right-click a page or click the action icon to open the UI.
+5. The extension icon should appear in the toolbar. click the action icon to open the UI.
 
 **Usage**
 -- Click the extension action (toolbar icon) to open the packaged UI (`ui.html`) which shows windows and tabs and supports drag selection for merges/splits. All merge and split operations are performed from this UI.
