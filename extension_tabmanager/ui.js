@@ -1,9 +1,16 @@
+/**
+ * Initialize the UI when the DOM content is fully loaded.
+ * Loads all windows and tabs, and sets up drag selection handlers.
+ */
 document.addEventListener('DOMContentLoaded', () => {
   loadWindowsAndTabs();
   attachDragSelectionHandlers();
 });
 
-// Keyboard shortcuts
+/**
+ * Handle keyboard shortcuts for the extension UI.
+ * Clears all selections and resets merge mode when Escape is pressed.
+ */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     blueSelection = [];
@@ -18,21 +25,43 @@ let windowsData = [];
 let activeWindowId = null;
 let lastSnapshot = null;
 
-// The windowId where the UI page (ui.html) currently lives. Kept up-to-date
-// by calling `refreshUiWindowId()` before actions that depend on the UI's window.
+/**
+ * The windowId where the UI page (ui.html) currently lives. Kept up-to-date
+ * by calling `refreshUiWindowId()` before actions that depend on the UI's window.
+ */
 let uiWindowId = null;
 
-// Selection state
+/**
+ * Selection state tracking for the three-state merge workflow:
+ * - blueSelection: Currently selected tabs (tab IDs)
+ * - redSelection: Merge source selection (tab IDs)
+ * - yellowSelection: Merge target selection (tab IDs)
+ * - mergeMode: null, 'red' (source stage), or 'yellow' (target stage)
+ */
 let blueSelection = []; // Current selection (tab IDs)
 let redSelection = []; // Merge source selection (tab IDs)
 let yellowSelection = []; // Merge target selection (tab IDs)
 let mergeMode = null; // null, 'red', or 'yellow'
-// Drag selection state
+
+/**
+ * Drag selection state for marquee selection:
+ * - isDragging: Whether a drag operation is in progress
+ * - dragStart: Starting coordinates {x, y} of the drag
+ * - marqueeEl: The marquee selection box DOM element
+ * - dragWasActive: Flag to suppress click after a drag completes
+ */
 let isDragging = false;
 let dragStart = null;
 let marqueeEl = null;
 let dragWasActive = false; // suppress click after a drag
 
+/**
+ * Loads all open windows and their tabs from Chrome, updates the UI,
+ * and attaches control handlers. Implements snapshot-based change detection
+ * to avoid unnecessary re-renders.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function loadWindowsAndTabs() {
   await refreshUiWindowId();
   try {
@@ -69,6 +98,12 @@ async function loadWindowsAndTabs() {
   }
 }
 
+/**
+ * Updates the UI window ID by querying for tabs matching the extension UI URL.
+ * This is called before operations to ensure we know which window the UI currently lives in.
+ * @async
+ * @returns {Promise<number|null>} The window ID of the UI, or null if not found
+ */
 async function refreshUiWindowId() {
 
   try {
@@ -86,6 +121,13 @@ async function refreshUiWindowId() {
   return uiWindowId;
 }
 
+/**
+ * Renders the window tabs list on the left sidebar, computing selection state
+ * for each window and attaching click/double-click event handlers.
+ * Single click switches the active window, ctrl+click toggles all tabs in the window,
+ * and double-click selects all tabs in the window.
+ * @returns {void}
+ */
 function renderWindowTabs() {
   const tabsList = document.getElementById('windowTabsList');
   tabsList.innerHTML = '';
@@ -148,6 +190,11 @@ function renderWindowTabs() {
   attachTopControls();
 }
 
+/**
+ * Attaches the top control buttons (merge, merge all, split) and defines their click handlers.
+ * These buttons manage the three-stage merge workflow and split functionality.
+ * @returns {void}
+ */
 function attachTopControls() {
   const controls = document.getElementById('windowControls');
   if (!controls) return;
@@ -265,6 +312,11 @@ function attachTopControls() {
   };
 }
 
+/**
+ * Finds the window ID that contains any of the given tab IDs.
+ * @param {number[]} tabIds - Array of tab IDs to search for
+ * @returns {number|null} The window ID containing one of the tabs, or null if not found
+ */
 function getWindowIdForTabs(tabIds) {
   for (const win of windowsData) {
     for (const tab of win.tabs) {
@@ -276,6 +328,14 @@ function getWindowIdForTabs(tabIds) {
   return null;
 }
 
+/**
+ * Merges all tabs from a source window into a target window.
+ * Moves all tabs from the source to the end of the target and focuses the target.
+ * @async
+ * @param {number} targetWindowId - The window to merge tabs into
+ * @param {number} sourceWindowId - The window to move tabs from
+ * @returns {Promise<void>}
+ */
 async function mergeFromWindow(targetWindowId, sourceWindowId) {
   if (sourceWindowId === targetWindowId) return;
   const source = await chrome.windows.get(sourceWindowId, { populate: true });
@@ -287,6 +347,14 @@ async function mergeFromWindow(targetWindowId, sourceWindowId) {
   await chrome.windows.update(targetWindowId, { focused: true });
 }
 
+/**
+ * Splits tabs from the current window into a new window based on the specified option.
+ * Supports moving either the other (non-active) tabs to a new window or the active tab to a new window.
+ * @async
+ * @param {number} windowId - The window ID to split
+ * @param {string} [option='others-to-new'] - Split strategy: 'others-to-new' (keep active) or 'active-to-new' (move active)
+ * @returns {Promise<void>}
+ */
 async function splitCurrentWindow(windowId, option = 'others-to-new') {
   // option: 'others-to-new' (keep active in original), 'active-to-new' (move active to new)
   const win = await chrome.windows.get(windowId, { populate: true });
@@ -310,6 +378,11 @@ async function splitCurrentWindow(windowId, option = 'others-to-new') {
   loadWindowsAndTabs();
 }
 
+/**
+ * Opens a modal dialog for choosing how to split the active window.
+ * Provides options to move other tabs to a new window or move the active tab to a new window.
+ * @returns {void}
+ */
 function openModalSplit() {
   const modalRoot = document.getElementById('modalRoot');
   modalRoot.innerHTML = '';
@@ -336,6 +409,14 @@ function openModalSplit() {
   document.getElementById('cancelSplit').onclick = () => closeModal();
 }
 
+/**
+ * Opens a generic modal dialog with a title, list of items, and a selection callback.
+ * Used to display options to the user and handle their choice.
+ * @param {string} title - The title to display in the modal
+ * @param {Array<{id: string, label: string}>} items - Array of selectable items with id and label
+ * @param {Function} onSelect - Callback function called with the selected item's id
+ * @returns {void}
+ */
 function openModal(title, items, onSelect) {
   const modalRoot = document.getElementById('modalRoot');
   modalRoot.innerHTML = '';
@@ -369,12 +450,22 @@ function openModal(title, items, onSelect) {
   modalRoot.appendChild(modal);
 }
 
+/**
+ * Closes the currently open modal dialog by removing the active class and clearing its content.
+ * @returns {void}
+ */
 function closeModal() {
   const modalRoot = document.getElementById('modalRoot');
   modalRoot.classList.remove('active');
   modalRoot.innerHTML = '';
 }
 
+/**
+ * Renders the main content area with all tabs from the active window.
+ * Creates page cards for each tab and updates the window tabs sidebar to reflect current selections.
+ * Shows an empty state if the active window has no tabs.
+ * @returns {void}
+ */
 function renderWindowContent() {
   const contentArea = document.getElementById('windowContent');
   const currentWindow = windowsData.find(w => w.id === activeWindowId);
@@ -399,6 +490,17 @@ function renderWindowContent() {
   renderWindowTabs();
 }
 
+/**
+ * Creates a DOM element representing a single tab (page card) with favicon, title, URL, and close button.
+ * Attaches click handlers for selection and drag-to-select functionality.
+ * @param {Object} tab - The tab object from Chrome's tabs API
+ * @param {number} tab.id - The unique tab ID
+ * @param {string} tab.title - The page title
+ * @param {string} tab.url - The page URL
+ * @param {string} [tab.favIconUrl] - The favicon URL
+ * @param {number} windowId - The window ID this tab belongs to
+ * @returns {HTMLElement} The created page card DOM element
+ */
 function createPageCard(tab, windowId) {
   const card = document.createElement('div');
   card.className = 'page-card';
@@ -483,6 +585,13 @@ function createPageCard(tab, windowId) {
   return card;
 }
 
+/**
+ * Updates the visual selection state of a page card (tab).
+ * Removes or adds selection classes (selected-red, selected-yellow, selected-blue) and badges.
+ * @param {HTMLElement} card - The page card DOM element to update
+ * @param {number} tabId - The tab ID corresponding to the card
+ * @returns {void}
+ */
 function updateCardSelectionState(card, tabId) {
   let badge = card.querySelector('.selection-badge');
   if (badge) badge.remove();
@@ -504,6 +613,11 @@ function updateCardSelectionState(card, tabId) {
   }
 }
 
+/**
+ * Toggles a tab's inclusion in the blue selection (current selection state).
+ * @param {number} tabId - The tab ID to toggle
+ * @returns {void}
+ */
 function toggleTabSelection(tabId) {
   if (blueSelection.includes(tabId)) {
     blueSelection = blueSelection.filter(id => id !== tabId);
@@ -512,6 +626,12 @@ function toggleTabSelection(tabId) {
   }
 }
 
+/**
+ * Selects all tabs in a given window by adding them to the blue selection.
+ * Updates the UI to reflect the selection changes.
+ * @param {number} windowId - The window ID whose tabs should be selected
+ * @returns {void}
+ */
 function selectAllTabsInWindow(windowId) {
   const window = windowsData.find(w => w.id === windowId);
   if (window) {
@@ -522,6 +642,13 @@ function selectAllTabsInWindow(windowId) {
   }
 }
 
+/**
+ * Toggles the selection state of all tabs in a window.
+ * If all tabs are already selected, deselects them; otherwise, selects all.
+ * Updates both the window tabs bar and main content area.
+ * @param {number} windowId - The window ID whose tabs should be toggled
+ * @returns {void}
+ */
 function toggleAllTabsInWindow(windowId) {
   const window = windowsData.find(w => w.id === windowId);
   if (!window) return;
@@ -548,10 +675,22 @@ function toggleAllTabsInWindow(windowId) {
 }
 
 
+/**
+ * Determines if two rectangles intersect using axis-aligned bounding box collision detection.
+ * @param {Object} a - First rectangle {left, right, top, bottom}
+ * @param {Object} b - Second rectangle {left, right, top, bottom}
+ * @returns {boolean} True if the rectangles intersect, false otherwise
+ */
 function rectsIntersect(a, b) {
   return !(a.left > b.right || a.right < b.left || a.top > b.bottom || a.bottom < b.top);
 }
 
+/**
+ * Attaches mousedown, mousemove, mouseup, and mouseleave handlers to enable marquee (drag-to-select) functionality.
+ * Allows users to click and drag to create a selection rectangle that selects all cards within it.
+ * Handles shift and ctrl modifiers for union and replace selection modes.
+ * @returns {void}
+ */
 function attachDragSelectionHandlers() {
   const container = document.getElementById('windowContent');
   if (!container) return;
@@ -659,6 +798,11 @@ function attachDragSelectionHandlers() {
   container.addEventListener('mouseleave', (e) => endDrag(e));
 }
 
+/**
+ * Displays an empty state UI when there are no windows or no tabs in the active window.
+ * Clears both the window tabs list and content area.
+ * @returns {void}
+ */
 function showEmptyState() {
   const tabsList = document.getElementById('windowTabsList');
   const contentArea = document.getElementById('windowContent');
