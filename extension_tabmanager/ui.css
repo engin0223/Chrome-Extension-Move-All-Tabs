@@ -274,39 +274,6 @@ body {
   font-size: 14px;
 }
 
-/* Modal styles */
-.modal-root {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.4);
-  z-index: 9999;
-}
-
-.modal-root.active {
-  display: flex;
-}
-
-.modal {
-  background: #1e1e1e;
-  border: 1px solid #3e3e42;
-  padding: 12px;
-  border-radius: 8px;
-  color: #ddd;
-  width: 420px;
-  max-width: 90%;
-}
-
-.modal h3 { margin: 0 0 8px 0; font-size: 14px }
-.modal .modal-list { max-height: 300px; overflow: auto; margin: 8px 0; }
-.modal .modal-list button { width: 100%; text-align: left; padding: 8px; border: none; background: #252526; color: #ddd; margin-bottom: 6px; cursor: pointer; border-radius: 4px }
-.modal .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px }
-.modal .btn { padding:8px 12px; border-radius:6px; cursor:pointer; border: none }
-.modal .btn.primary { background:#007acc; color:#fff }
-.modal .btn.ghost { background:transparent; color:#ddd; border:1px solid #3e3e42 }
-
 /* Scrollbar styling */
 .window-content::-webkit-scrollbar,
 .window-tabs-bar::-webkit-scrollbar {
@@ -328,4 +295,46 @@ body {
 .window-content::-webkit-scrollbar-thumb:hover,
 .window-tabs-bar::-webkit-scrollbar-thumb:hover {
   background: #5a5a5a;
+}
+
+/* Drag ghost showing shallow clones of pages */
+.drag-ghost {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+  padding: 6px;
+  border-radius: 6px;
+  background: rgba(30,30,30,0.98);
+}
+
+/* When a card is a drop target, give a clear outline */
+.page-card.drop-target {
+  outline: 2px dashed rgba(0,122,204,0.9);
+  outline-offset: -6px;
+}
+
+/* Visual insertion indicators */
+.page-card.insert-before::before,
+.page-card.insert-after::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 3px;
+  background: #007acc;
+  z-index: 20;
+}
+.page-card.insert-before::before { top: -6px; }
+.page-card.insert-after::after { bottom: -6px; }
+
+/* placeholder used to reserve space and cause other cards to slide */
+.insertion-placeholder {
+  min-width: 280px;
+  max-width: 350px;
+  width: 300px;
+  min-height: 72px;
+  background: rgba(0,122,204,0.06);
+  border: 2px dashed rgba(0,122,204,0.4);
+  border-radius: 6px;
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  margin: 0;
 }

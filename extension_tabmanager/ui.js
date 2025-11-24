@@ -3,8 +3,10 @@
  * Loads all windows and tabs, and sets up drag selection handlers.
  */
 document.addEventListener('DOMContentLoaded', () => {
-  loadWindowsAndTabs();
-  attachDragSelectionHandlers();
+  loadFeatureFlags().then(() => {
+    loadWindowsAndTabs();
+    attachDragSelectionHandlers();
+  });
 });
 
 /**
@@ -54,6 +56,25 @@ let isDragging = false;
 let dragStart = null;
 let marqueeEl = null;
 let dragWasActive = false; // suppress click after a drag
+
+/**
+ * Feature flag for move-tabs experimental feature
+ */
+let moveTabsEnabled = false; // default enabled
+
+/**
+ * Load feature flags from storage
+ * @async
+ * @returns {Promise<void>}
+ */
+async function loadFeatureFlags() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get({ moveTabsEnabled: false }, (items) => {
+      moveTabsEnabled = items.moveTabsEnabled;
+      resolve();
+    });
+  });
+}
 
 /**
  * Loads all open windows and their tabs from Chrome, updates the UI,
@@ -161,6 +182,8 @@ function renderWindowTabs() {
     
     tab.appendChild(icon);
     tab.appendChild(label);
+    // expose window id for drag hover detection
+    tab.dataset.windowId = windowData.id;
     
     let clickTimer = null;
 
@@ -694,11 +717,66 @@ function rectsIntersect(a, b) {
 function attachDragSelectionHandlers() {
   const container = document.getElementById('windowContent');
   if (!container) return;
+  // Drag-to-select marquee vs dragging selected tabs to move
+  let isMoveDragging = false;
+  let moveGhost = null;
+  let moveDragStart = null;
+  let moveDirection = 0; // -1 left, 1 right
+  let currentTargetCard = null;
+  let currentInsertIndex = -1;
+  let insertionPlaceholder = null;
+  let hoverWindowTimer = null;
+  let lastHoverWindowId = null;
 
   container.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return; // left button only
     // don't start drag when clicking on controls inside cards
     if (e.target.closest('.page-card-close-btn')) return;
+
+    const clickedCard = e.target.closest('.page-card');
+    if (clickedCard) {
+      const tabId = Number(clickedCard.dataset.tabId);
+      // if clicking a card that is already part of blueSelection, start a move-drag (only if feature enabled)
+      if (blueSelection.includes(tabId) && moveTabsEnabled) {
+        isMoveDragging = true;
+        moveDragStart = { x: e.clientX, y: e.clientY };
+        dragWasActive = false;
+        moveDirection = 0;
+        currentTargetCard = null;
+        currentInsertIndex = -1;
+
+        // create ghost container and shallow clones of selected page cards
+        moveGhost = document.createElement('div');
+        moveGhost.className = 'drag-ghost';
+        moveGhost.style.position = 'fixed';
+        moveGhost.style.pointerEvents = 'none';
+        moveGhost.style.zIndex = 9999;
+        moveGhost.style.display = 'flex';
+        moveGhost.style.flexDirection = 'column';
+        moveGhost.style.gap = '6px';
+        moveGhost.style.transform = 'scale(0.95)';
+
+        // clone each selected card and append to ghost
+        blueSelection.forEach(id => {
+          const orig = container.querySelector(`.page-card[data-tab-id="${id}"]`);
+          if (orig) {
+            const clone = orig.cloneNode(true);
+            clone.style.pointerEvents = 'none';
+            clone.style.margin = '0';
+            clone.style.width = `${Math.min(orig.getBoundingClientRect().width, 340)}px`;
+            moveGhost.appendChild(clone);
+            // hide original while dragging
+            orig.style.display = 'none';
+          }
+        });
+
+        document.body.appendChild(moveGhost);
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // otherwise start marquee selection
     isDragging = true;
     dragWasActive = false;
     dragStart = { x: e.clientX, y: e.clientY };
@@ -715,6 +793,84 @@ function attachDragSelectionHandlers() {
   });
 
   container.addEventListener('mousemove', (e) => {
+    // handle move-drag (moving selected tabs)
+    if (isMoveDragging && moveGhost) {
+      dragWasActive = true;
+      moveGhost.style.left = `${e.clientX + 12}px`;
+      moveGhost.style.top = `${e.clientY + 12}px`;
+
+      // compute direction
+      const dx = e.clientX - moveDragStart.x;
+      moveDirection = dx === 0 ? moveDirection : (dx > 0 ? 1 : -1);
+
+      // detect hovering over window buttons to auto-switch after delay
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const winBtn = el ? el.closest('.window-tab') : null;
+      const winId = winBtn ? Number(winBtn.dataset.windowId) : null;
+      if (winId && winId !== lastHoverWindowId) {
+        lastHoverWindowId = winId;
+        if (hoverWindowTimer) clearTimeout(hoverWindowTimer);
+        hoverWindowTimer = setTimeout(() => {
+          activeWindowId = winId;
+          renderWindowContent();
+        }, 700);
+      } else if (!winId) {
+        if (hoverWindowTimer) { clearTimeout(hoverWindowTimer); hoverWindowTimer = null; lastHoverWindowId = null; }
+      }
+
+      // highlight potential drop target card under cursor and show insertion side
+      const under = document.elementFromPoint(e.clientX, e.clientY);
+      const card = under ? under.closest('.page-card') : null;
+      Array.from(container.querySelectorAll('.page-card')).forEach(c => { c.classList.remove('drop-target'); c.classList.remove('insert-before'); c.classList.remove('insert-after'); });
+      currentTargetCard = null;
+      //currentInsertIndex = -1;
+      if (card) {
+        currentTargetCard = card;
+        card.classList.add('drop-target');
+        // determine insert before/after based on drag direction
+        if (moveDirection > 0) {
+          card.classList.add('insert-after');
+        } else {
+          card.classList.add('insert-before');
+        }  
+        // compute tentative insert index
+        const targetTabId = Number(card.dataset.tabId);
+        const targetWin = windowsData.find(w => w.id === Number(card.dataset.windowId));
+        if (targetWin) {
+          let idx = targetWin.tabs.findIndex(t => t.id === targetTabId);
+          if (idx !== -1) {
+            currentInsertIndex = (moveDirection > 0) ? idx + 1 : idx;
+          }
+        }
+        // create or move insertion placeholder to show sliding
+        if (currentInsertIndex !== -1) {
+          if (!insertionPlaceholder) {
+            insertionPlaceholder = document.createElement('div');
+            insertionPlaceholder.className = 'insertion-placeholder';
+          }
+          // determine where to insert among page-card elements
+          const cards = Array.from(container.querySelectorAll('.page-card'));
+          const ref = cards[currentInsertIndex] || null;
+          if (!cards[currentInsertIndex+1] !== null) {
+            if (ref.parentNode !== container || container.children[currentInsertIndex] !== insertionPlaceholder) {
+              container.insertBefore(insertionPlaceholder, ref);
+            } else {
+              const ref2 = cards[currentInsertIndex] || null;
+              container.insertBefore(insertionPlaceholder, ref);
+              // append at end
+              console.log(currentInsertIndex);
+              //if (insertionPlaceholder.parentNode !== container) container.appendChild(insertionPlaceholder);
+            }
+          } else {
+            // append at end
+            if (insertionPlaceholder.parentNode !== container) container.appendChild(insertionPlaceholder);
+          }
+        }
+      }
+      return;
+    }
+
+    // marquee selection
     if (!isDragging || !marqueeEl) return;
     dragWasActive = true;
     const rect = container.getBoundingClientRect();
@@ -751,7 +907,96 @@ function attachDragSelectionHandlers() {
   });
 
   function endDrag(e) {
-    if (!isDragging) return;
+    // handle ending either marquee drag or move-drag
+    if (!isDragging && !isMoveDragging) return;
+
+    // Clear any hover timer
+    if (hoverWindowTimer) { clearTimeout(hoverWindowTimer); hoverWindowTimer = null; lastHoverWindowId = null; }
+
+    // If we were move-dragging, perform move on mouseup
+    if (isMoveDragging) {
+      isMoveDragging = false;
+      // determine drop target windowId
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      let targetWindowId = null;
+      const card = el ? el.closest('.page-card') : null;
+      const winBtn = el ? el.closest('.window-tab') : null;
+      if (card) targetWindowId = Number(card.dataset.windowId);
+      else if (winBtn) targetWindowId = Number(winBtn.dataset.windowId);
+      else targetWindowId = activeWindowId;
+      // cleanup ghost and visuals
+      if (moveGhost && moveGhost.parentNode) moveGhost.parentNode.removeChild(moveGhost);
+      moveGhost = null;
+      Array.from(document.querySelectorAll('.page-card.drop-target')).forEach(c => c.classList.remove('drop-target'));
+      Array.from(document.querySelectorAll('.page-card.insert-before')).forEach(c => c.classList.remove('insert-before'));
+      Array.from(document.querySelectorAll('.page-card.insert-after')).forEach(c => c.classList.remove('insert-after'));
+
+      // always restore hidden originals (they were hidden while dragging)
+      blueSelection.forEach(id => {
+        const orig = container.querySelector(`.page-card[data-tab-id="${id}"]`);
+        if (orig) orig.style.display = '';
+      });
+
+      // remove insertion placeholder if present
+      if (insertionPlaceholder && insertionPlaceholder.parentNode) insertionPlaceholder.parentNode.removeChild(insertionPlaceholder);
+      insertionPlaceholder = null;
+
+      // perform the move only if there are selected tabs
+      if (blueSelection.length) {
+        (async () => {
+          try {
+            await refreshUiWindowId();
+            const tabIds = blueSelection.slice();
+            const srcWindowId = getWindowIdForTabs(tabIds);
+            let index = currentInsertIndex != null && currentInsertIndex >= 0 ? currentInsertIndex : -1;
+            
+            // If moving within the same window, we must adjust the index to account for removed tabs
+            if (srcWindowId === targetWindowId && index !== -1) {
+              const srcWin = windowsData.find(w => w.id === srcWindowId);
+              if (srcWin) {
+                // count how many selected tabs are located before the desired index
+                let beforeCount = 0;
+                for (const t of srcWin.tabs) {
+                  if (t.id === undefined) continue;
+                  if (tabIds.includes(t.id) && srcWin.tabs.findIndex(tt => tt.id === t.id) < index) {
+                    beforeCount++;
+                  }
+                }
+                index = Math.max(0, index + beforeCount);
+              }
+            }
+
+            // restore original cards visibility before moving (UI will refresh later)
+            blueSelection.forEach(id => {
+              const orig = container.querySelector(`.page-card[data-tab-id="${id}"]`);
+              if (orig) orig.style.display = '';
+            });
+
+            await chrome.tabs.move(tabIds, { windowId: targetWindowId, index });
+
+            // focus and show target window in UI after a short wait
+            setTimeout(async () => {
+              try { await chrome.windows.update(targetWindowId, { focused: true }); } catch (e) {}
+              activeWindowId = targetWindowId;
+              blueSelection = [];
+              loadWindowsAndTabs();
+            }, 300);
+          } catch (err) {
+            console.error('Move failed:', err);
+            // restore originals if something failed
+            blueSelection.forEach(id => {
+              const orig = container.querySelector(`.page-card[data-tab-id="${id}"]`);
+              if (orig) orig.style.display = '';
+            });
+            loadWindowsAndTabs();
+          }
+        })();
+      }
+
+      return;
+    }
+
+    // otherwise handle marquee end
     isDragging = false;
     const rect = container.getBoundingClientRect();
     const x1 = Math.min(dragStart.x, e.clientX);

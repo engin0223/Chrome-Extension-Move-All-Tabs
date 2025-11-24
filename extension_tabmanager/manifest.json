@@ -3,10 +3,10 @@
   "name": "Merge Selected Tabs",
   "version": "1.0",
   "description": "Lets you right-click on a window and choose which tabs from other windows to merge into it.",
-  "permissions": ["tabs", "windows"],
+  "permissions": ["tabs", "windows", "storage"],
   "background": {
     "service_worker": "background.js"
-  }
-  ,
-  "action": {}
+  },
+  "action": {},
+  "options_page": "options.html"
 }
