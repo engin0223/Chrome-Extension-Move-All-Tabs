@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Move All Tabs — Window Viewer</title>
+    <link rel="stylesheet" href="ui.css" />
+  </head>
+  <body>
+    <div class="window-viewer-container">
+      <div class="window-tabs-bar">
+        <div id="windowTabsList" class="window-tabs-list"></div>
+        <div id="windowControls" class="window-controls" aria-hidden="true">
+          <button id="mergeBtn" class="control-btn" title="Merge from another window">Merge</button>
+          <button id="splitBtn" class="control-btn" title="Split current window">Split</button>
+        </div>
+      </div>
+      <div class="window-content-area">
+        <div id="windowContent" class="window-content"></div>
+      </div>
+    </div>
+    <script src="ui.js"></script>
+  </body>
+</html>

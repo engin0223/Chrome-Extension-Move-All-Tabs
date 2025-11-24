@@ -94,3 +94,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     });
   }
 });
+
+// Open local dev server when extension action is clicked
+chrome.action.onClicked.addListener(() => {
+  const packagedUrl = chrome.runtime.getURL('ui.html')
+  chrome.tabs.create({ url: packagedUrl })
+})

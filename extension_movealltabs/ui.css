@@ -1,0 +1,331 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f3f3f3;
+  overflow: hidden;
+}
+
+.window-viewer-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+.window-tabs-bar {
+  background: #2d2d30;
+  border-bottom: 1px solid #1e1e1e;
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  align-items: center;
+  height: 35px;
+  flex-shrink: 0;
+}
+
+.window-tabs-list {
+  display: flex;
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.window-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 35px;
+  background: #3e3e42;
+  color: #cccccc;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  font-size: 13px;
+  border-radius: 0;
+  transition: background 0.2s;
+}
+
+.window-tab:hover {
+  background: #454549;
+}
+
+.window-tab.active {
+  background: black;
+  color: #ffffff;
+  border-bottom: 2px solid #007acc;
+}
+
+/* Window tab highlights when all tabs inside the window are selected */
+.window-tab.selected-blue {
+  background: darkblue;
+  color: #ffffff;
+  border-bottom: 2px solid blue;
+}
+.window-tab.selected-red {
+  background: darkred;
+  color: #ffffff;
+  border-bottom: 2px solid red;
+}
+.window-tab.selected-yellow {
+  background: darkgoldenrod;
+  color: #ffffff;
+  border-bottom: 2px solid yellow;
+}
+
+.window-tab-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.window-tab-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.window-controls {
+  display: flex;
+  gap: 6px;
+  padding: 0 8px;
+  align-items: center;
+}
+
+.control-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cfcfcf;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.control-btn:hover {
+  background: #3e3e42;
+  color: #fff;
+  border-color: #555;
+}
+
+.window-content-area {
+  flex: 1;
+  overflow: hidden;
+  background: #252526;
+}
+
+.window-content {
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  position: relative;
+}
+
+.window-content.active {
+  display: flex;
+}
+
+
+.page-card {
+  background: #1e1e1e;
+  border: 2px solid #3e3e42;
+  border-radius: 6px;
+  min-width: 280px;
+  max-width: 350px;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s, background 0.2s;
+  position: relative;
+  cursor: pointer;
+}
+
+.page-card:hover {
+  border-color: #007acc;
+  transform: translateY(-2px);
+}
+
+.page-card.selected-blue {
+  border-color: #007acc;
+  background: #1a2332;
+}
+
+.page-card.selected-red {
+  border-color: #d16969;
+  background: #2a1e1e;
+}
+
+.page-card.selected-yellow {
+  border-color: #dcdcaa;
+  background: #2a2818;
+}
+
+.selection-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 10;
+  font-weight: 500;
+}
+
+/* Marquee selection box */
+.marquee {
+  position: absolute;
+  border: 1px dashed #007acc;
+  background: rgba(0,122,204,0.10);
+  pointer-events: none;
+  z-index: 999;
+  border-radius: 4px;
+}
+
+.page-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+  min-height: 40px;
+}
+
+.page-card-favicon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.page-card-title {
+  flex: 1;
+  font-size: 12px;
+  color: #cccccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-card-close-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  border-radius: 3px;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.page-card-close-btn:hover {
+  background: #3e3e42;
+  color: #f48771;
+}
+
+.page-card-content {
+  padding: 10px 12px;
+  flex: 1;
+  font-size: 11px;
+  color: #858585;
+}
+
+.page-url {
+  display: block;
+  color: #858585;
+  font-size: 10px;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #858585;
+  font-size: 14px;
+}
+
+/* Modal styles */
+.modal-root {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  z-index: 9999;
+}
+
+.modal-root.active {
+  display: flex;
+}
+
+.modal {
+  background: #1e1e1e;
+  border: 1px solid #3e3e42;
+  padding: 12px;
+  border-radius: 8px;
+  color: #ddd;
+  width: 420px;
+  max-width: 90%;
+}
+
+.modal h3 { margin: 0 0 8px 0; font-size: 14px }
+.modal .modal-list { max-height: 300px; overflow: auto; margin: 8px 0; }
+.modal .modal-list button { width: 100%; text-align: left; padding: 8px; border: none; background: #252526; color: #ddd; margin-bottom: 6px; cursor: pointer; border-radius: 4px }
+.modal .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px }
+.modal .btn { padding:8px 12px; border-radius:6px; cursor:pointer; border: none }
+.modal .btn.primary { background:#007acc; color:#fff }
+.modal .btn.ghost { background:transparent; color:#ddd; border:1px solid #3e3e42 }
+
+/* Scrollbar styling */
+.window-content::-webkit-scrollbar,
+.window-tabs-bar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.window-content::-webkit-scrollbar-track,
+.window-tabs-bar::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.window-content::-webkit-scrollbar-thumb,
+.window-tabs-bar::-webkit-scrollbar-thumb {
+  background: #464647;
+  border-radius: 6px;
+}
+
+.window-content::-webkit-scrollbar-thumb:hover,
+.window-tabs-bar::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}

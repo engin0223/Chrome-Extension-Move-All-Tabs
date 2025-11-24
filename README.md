@@ -1,66 +1,68 @@
-# Seçili Sekmeleri Birleştir
+# Move All Tabs (Chrome extension)
 
-Sağ tıklama bağlam menülerini kullanarak **tarayıcı pencerelerini birleştirmenize ve bölmenize** yardımcı olan hafif bir Chrome uzantısı.
+Lightweight Chrome extension to help merge and split tabs between windows using context menus and a small UI.
 
-## Özellikler
+This extension provides quick actions to merge all tabs from another window into the current window, or to split a window (move the active tab to a new window or move the other tabs to a new window).
 
-* **Pencereler Arasında Sekmeleri Birleştir**
-Sağ tıklayın ve bir pencereyi seçerek tüm sekmelerini geçerli pencerenizle birleştirin.
+**Key features**
+- Merge all tabs from another window into the focused window via a context menu.
+- Split the current window: move the active tab to a new window or move all other tabs to a new window.
+- Dynamic context menus that update when the focused window changes.
+- Optional UI (`ui.html`) for visual window/tab management.
 
-* **Pencereyi Böl**
-Geçerli sekmeyi yeni bir pencereye taşıyın, kalan sekmeleri başka bir pencereye itin.
+**Works with:** Chrome Manifest V3
 
-* **Dinamik Bağlam Menüleri**
-Bağlam menüsü, o anda odaklanılan pencereye bağlı olarak otomatik olarak güncellenir.
+**Quick install (developer)**
+1. Clone or download this repository.
+2. Open Chrome and go to `chrome://extensions/`.
+3. Enable **Developer mode** (top-right).
+4. Click **Load unpacked** and select the project folder (`extension_movealltabs` inside the repo).
+5. The extension icon should appear in the toolbar. Right-click a page or click the action icon to open the UI.
 
-## Nasıl Çalışır?
+**Usage**
+- Right-click in a page (context menus are provided) to open the parent menu "Merge all tabs from another window" and choose one of the listed windows to merge its tabs into the current window.
+- Use the "Split window" menu item to move the active tab into a new window, and optionally move the rest to another new window.
+- Click the extension action (toolbar icon) to open the packaged UI (`ui.html`) which shows windows and tabs and supports drag selection for merges/splits.
 
-* Eklenti, iki ana seçeneğe sahip bir **bağlam menüsü** ekler:
+**Files of interest**
+- `manifest.json` — extension metadata and permissions (Manifest V3).
+- `background.js` — builds context menus and implements merge/split logic using the `chrome.windows` and `chrome.tabs` APIs.
+- `content.js` — sends a simple right-click message to the background script to help refresh context/menu state.
+- `ui.html`, `ui.js`, `ui.css` — optional packaged UI for viewing windows/tabs and doing merges/splits with mouse/keyboard interactions.
 
-* **Başka bir penceredeki tüm sekmeleri birleştir** – diğer tüm açık Chrome pencerelerini, ilk sekmelerinin başlığını ve sekme sayısını göstererek listeler. Birini seçtiğinizde, tüm sekmeleri geçerli pencerenizle birleştirilir.
-* **Pencereyi Böl (geçerli sekme → yeni pencere)** – geçerli sekmenizi yeni bir pencereye taşır ve kalan sekmeleri başka bir pencereye yerleştirir.
+**Permissions required**
+- `tabs` — to move and query tabs.
+- `windows` — to create and manage browser windows.
+- `contextMenus` — to add right-click options.
+- `scripting` — used for content/background interactions (declared in `manifest.json`).
 
-* `background.js` menü oluşturma, sekme birleştirme ve pencere bölme işlemlerini gerçekleştirir.
+**Development notes**
+- The extension uses event listeners in `background.js` to update the context menus when the focused window changes.
+- The UI (`ui.html`) is a simple single-page interface for visual selection; it relies on the `chrome.*` extension APIs available to extension pages.
+- There is an optional `webapp` dev server mention in the previous README; if you have a `webapp` directory and a local dev server, you can run it and point the extension to that URL by editing the background action logic.
 
-* `content.js` sağ tıklamaları dinler ve arka plan betiğini bilgilendirir.
+**Load locally / test**
+1. Visit `chrome://extensions/`.
+2. Enable Developer Mode.
+3. Click `Load unpacked` and select the `extension_movealltabs` folder in this repository.
 
-* `manifest.json` eklentiyi gerekli izinlerle kaydeder.
+**Troubleshooting**
+- If a context menu doesn't appear, try reloading the extension on the `chrome://extensions/` page.
+- Check the extension background console (Service Worker) for errors via the Extensions page (click "service worker" link under the extension entry).
 
-## Kurulum
+**Contributing & Ideas**
+- Add keyboard shortcuts for merging/splitting windows.
+- Provide per-tab selection for merges (more granular than whole-window merges).
 
-1. Bu deponun kopyasını oluşturun veya indirin.
-2. **Google Chrome**'u açın ve `chrome://extensions/` adresine gidin.
-3. **Geliştirici modunu** etkinleştirin (sağ üst köşedeki geçiş düğmesi).
-4. **Paketlenmemiş olarak yükle**'ye tıklayın ve bu projenin klasörünü seçin.
-5. Eklenti artık Chrome araç çubuğunuzda görünmelidir.
-
-## İzinler
-
-Eklenti şunları gerektirir:
-
-* `tabs` – sekmeleri taşımak ve birleştirmek için.
-* `windows` – tarayıcı pencereleri oluşturmak ve yönetmek için.
-* `contextMenus` – sağ tıklama seçenekleri eklemek için. * `scripting` – içerik ve arka plan betikleri arasındaki etkileşimleri yönetmek için.
-
-## Dosya Yapısı
-
-```
-.
-├── background.js # Bağlam menüsü, birleştirme ve bölme mantığını yönetir
-├── content.js # Sağ tıklamada olay gönderir
-├── manifest.json # Eklenti yapılandırması
-└── README.md # Proje dokümantasyonu
-```
-
-## Notlar
-
-* **Chrome Manifest V3** ile çalışır.
-* Bölme sırasında oluşturulan pencereler durumlarını (tam ekran, normal vb.) korur.
-* Odak pencereler arasında değiştiğinde uzantı menülerini dinamik olarak günceller.
+**License & Author**
+- Author: repository owner
+- License: (not specified) — add a `LICENSE` file if you want an explicit license.
 
 ---
 
-### Gelecekteki Geliştirmeler
+If you'd like, I can also:
+- Add a short Turkish summary at the top.
+- Add a `CONTRIBUTING.md` and `LICENSE`.
+- Add quick screenshots for the UI.
 
-* Seçici sekme birleştirme eklendi (tüm pencereler yerine belirli sekmeleri seçin).
-* Bağlam menülerine ek olarak klavye kısayolları desteği.
+Updated README to reflect the current code and usage.
