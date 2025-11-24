@@ -409,7 +409,6 @@ function createPageCard(tab, windowId) {
       } else {
         // Regular click: start new blue selection
         blueSelection = [tab.id];
-        renderWindowContent();
       }
     }
   });
@@ -421,10 +420,6 @@ function createPageCard(tab, windowId) {
 }
 
 function updateCardSelectionState(card, tabId) {
-  card.classList.remove('selected-blue', 'selected-red', 'selected-yellow');
-
-  console.log(card.classList);
-  
   let badge = card.querySelector('.selection-badge');
   if (badge) badge.remove();
 
@@ -451,7 +446,6 @@ function toggleTabSelection(tabId) {
   } else {
     blueSelection.push(tabId);
   }
-  renderWindowContent();
 }
 
 function selectAllTabsInWindow(windowId) {
@@ -549,10 +543,10 @@ function attachDragSelectionHandlers() {
     });
 
     if (selectedIds.length) {
-      if (e.ctrlKey || e.metaKey) {
+      if (e.shiftKey || e.metaKey) {
         // union
         blueSelection = Array.from(new Set([...blueSelection, ...selectedIds]));
-      } else {
+      } else if (!e.ctrlKey){
         // replace
         blueSelection = selectedIds;
       }
