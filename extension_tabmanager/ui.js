@@ -124,7 +124,7 @@ function renderWindowTabs() {
 
     tab.addEventListener('click', (e) => {
       if (e.ctrlKey || e.metaKey) {
-        selectAllTabsInWindow(windowData.id);
+        toggleAllTabsInWindow(windowData.id);
         // ensure UI updates to reflect the new selection state
         renderWindowTabs();
         renderWindowContent();
@@ -515,12 +515,38 @@ function toggleTabSelection(tabId) {
 function selectAllTabsInWindow(windowId) {
   const window = windowsData.find(w => w.id === windowId);
   if (window) {
-    blueSelection = window.tabs.map(t => t.id);
+    blueSelection = [...blueSelection, ...window.tabs.map(t => t.id)];
     // update UI so top-level window tabs reflect the selection
     renderWindowTabs();
     renderWindowContent();
   }
 }
+
+function toggleAllTabsInWindow(windowId) {
+  const window = windowsData.find(w => w.id === windowId);
+  if (!window) return;
+
+  const tabIds = window.tabs.map(t => t.id);
+
+  // Check if all tabs for this window are already selected
+  const allSelected = tabIds.every(id => blueSelection.includes(id));
+
+  if (allSelected) {
+    // Remove all of the window's tabs from blueSelection
+    blueSelection = blueSelection.filter(id => !tabIds.includes(id));
+  } else {
+    // Add only the tabs that are NOT yet in blueSelection
+    tabIds.forEach(id => {
+      if (!blueSelection.includes(id)) {
+        blueSelection.push(id);
+      }
+    });
+  }
+
+  renderWindowTabs();
+  renderWindowContent();
+}
+
 
 function rectsIntersect(a, b) {
   return !(a.left > b.right || a.right < b.left || a.top > b.bottom || a.bottom < b.top);
