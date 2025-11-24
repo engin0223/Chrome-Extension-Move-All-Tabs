@@ -29,7 +29,7 @@ This section explains how to use the optional packaged UI (`ui.html`) and the me
 
 - **Top window tabs (window list)**:
 	- Single click: make the clicked window the active window and show its tabs.
-	- Ctrl (Windows/Linux) or Cmd (macOS) + click: select all tabs in that window (this becomes the blue selection shown in the content area).
+	- Ctrl (Windows/Linux) or Cmd (macOS) + click: toggle the selection of all the tabs in the window (adds/removes it from the blue selection).
 	- Double-click: switch to that window and select all tabs in it.
 
 - **Tab cards (page cards in the content area)**:
