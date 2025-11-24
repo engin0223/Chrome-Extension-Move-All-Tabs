@@ -1,14 +1,13 @@
 # Move All Tabs (Chrome extension)
 
-Lightweight Chrome extension to help merge and split tabs between windows using context menus and a small UI.
+Lightweight Chrome extension to help merge and split tabs between windows using a compact UI.
 
-This extension provides quick actions to merge all tabs from another window into the current window, or to split a window (move the active tab to a new window or move the other tabs to a new window).
+This extension provides quick actions to merge and split windows and tabs via the packaged UI (`ui.html`).
 
 **Key features**
-- Merge all tabs from another window into the focused window via a context menu.
-- Split the current window: move the active tab to a new window or move all other tabs to a new window.
-- Dynamic context menus that update when the focused window changes.
-- Optional UI (`ui.html`) for visual window/tab management.
+- Visual UI for viewing windows and selecting tabs to merge or split.
+- Drag (marquee) selection and multi-select with Ctrl/Cmd for flexible tab grouping.
+- One-click merge/split operations from the UI.
 
 **Works with:** Chrome Manifest V3
 
@@ -20,9 +19,7 @@ This extension provides quick actions to merge all tabs from another window into
 5. The extension icon should appear in the toolbar. Right-click a page or click the action icon to open the UI.
 
 **Usage**
-- Right-click in a page (context menus are provided) to open the parent menu "Merge all tabs from another window" and choose one of the listed windows to merge its tabs into the current window.
-- Use the "Split window" menu item to move the active tab into a new window, and optionally move the rest to another new window.
-- Click the extension action (toolbar icon) to open the packaged UI (`ui.html`) which shows windows and tabs and supports drag selection for merges/splits.
+-- Click the extension action (toolbar icon) to open the packaged UI (`ui.html`) which shows windows and tabs and supports drag selection for merges/splits. All merge and split operations are performed from this UI.
 
 ## Detailed Usage — UI controls, clicks and keys
 
@@ -65,15 +62,12 @@ If you'd like, I can also add a short animated GIF or screenshot to this README 
 
 **Files of interest**
 - `manifest.json` — extension metadata and permissions (Manifest V3).
-- `background.js` — builds context menus and implements merge/split logic using the `chrome.windows` and `chrome.tabs` APIs.
-- `content.js` — sends a simple right-click message to the background script to help refresh context/menu state.
-- `ui.html`, `ui.js`, `ui.css` — optional packaged UI for viewing windows/tabs and doing merges/splits with mouse/keyboard interactions.
+- `background.js` — lightweight background script; the action opens the packaged UI (`ui.html`).
+- `ui.html`, `ui.js`, `ui.css` — packaged UI for viewing windows/tabs and doing merges/splits with mouse/keyboard interactions.
 
 **Permissions required**
 - `tabs` — to move and query tabs.
 - `windows` — to create and manage browser windows.
-- `contextMenus` — to add right-click options.
-- `scripting` — used for content/background interactions (declared in `manifest.json`).
 
 **Development notes**
 - The extension uses event listeners in `background.js` to update the context menus when the focused window changes.
