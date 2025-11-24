@@ -78,7 +78,6 @@ If you'd like, I can also add a short animated GIF or screenshot to this README 
 **Development notes**
 - The extension uses event listeners in `background.js` to update the context menus when the focused window changes.
 - The UI (`ui.html`) is a simple single-page interface for visual selection; it relies on the `chrome.*` extension APIs available to extension pages.
-- There is an optional `webapp` dev server mention in the previous README; if you have a `webapp` directory and a local dev server, you can run it and point the extension to that URL by editing the background action logic.
 
 **Load locally / test**
 1. Visit `chrome://extensions/`.
