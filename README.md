@@ -58,7 +58,6 @@ This section explains how to use the optional packaged UI (`ui.html`) and the me
 	- If you click controls but the UI tab moved to another window (for example, you opened or focused another window), the UI attempts to refresh its own window id automatically before performing moves.
 	- Alerts will appear if you try to perform actions with no selection (for example, clicking `Split` with no tabs selected).
 
-If you'd like, I can also add a short animated GIF or screenshot to this README showing the marquee selection and the Merge flow — would you like that added?
 
 **Files of interest**
 - `manifest.json` — extension metadata and permissions (Manifest V3).
