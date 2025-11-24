@@ -18,6 +18,10 @@ let windowsData = [];
 let activeWindowId = null;
 let lastSnapshot = null;
 
+// The windowId where the UI page (ui.html) currently lives. Kept up-to-date
+// by calling `refreshUiWindowId()` before actions that depend on the UI's window.
+let uiWindowId = null;
+
 // Selection state
 let blueSelection = []; // Current selection (tab IDs)
 let redSelection = []; // Merge source selection (tab IDs)
@@ -30,6 +34,7 @@ let marqueeEl = null;
 let dragWasActive = false; // suppress click after a drag
 
 async function loadWindowsAndTabs() {
+  await refreshUiWindowId();
   try {
     // Get all windows with their tabs
     const windows = await chrome.windows.getAll({ populate: true });
@@ -62,6 +67,23 @@ async function loadWindowsAndTabs() {
   } catch (error) {
     console.error('Error loading windows:', error);
   }
+}
+
+async function refreshUiWindowId() {
+
+  try {
+    // Fallback: find a tab that matches the extension UI URL
+    const url = chrome.runtime.getURL('ui.html');
+    const tabs = await new Promise(resolve => chrome.tabs.query({ url }, resolve));
+    if (tabs && tabs.length) {
+      uiWindowId = tabs[0].windowId;
+      return uiWindowId;
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return uiWindowId;
 }
 
 function renderWindowTabs() {
@@ -130,10 +152,13 @@ function attachTopControls() {
   const controls = document.getElementById('windowControls');
   if (!controls) return;
   const mergeBtn = document.getElementById('mergeBtn');
+  const mergeAllBtn = document.getElementById('mergeAllBtn');
   const splitBtn = document.getElementById('splitBtn');
   controls.setAttribute('aria-hidden', 'false');
-
+  
   mergeBtn.onclick = async () => {
+    // Ensure we know which window the UI currently lives in (may have moved)
+    await refreshUiWindowId();
     if (blueSelection.length === 0 && mergeMode !== 'yellow') {
       alert('No tabs selected');
       return;
@@ -192,12 +217,51 @@ function attachTopControls() {
 
   };
 
-  splitBtn.onclick = () => {
+  mergeAllBtn.onclick = async () => {
+    // Refresh UI window id so we merge into the window that currently hosts the UI
+    await refreshUiWindowId();
+    const targetWindowId = uiWindowId || activeWindowId || (windowsData[0] && windowsData[0].id);
+    if (!targetWindowId) return alert('No target window to merge into');
+    try {
+      // Merge each window into the target (sequentially)
+      for (const win of windowsData) {
+        if (win.id === targetWindowId) continue;
+        await mergeFromWindow(targetWindowId, win.id);
+      }
+      loadWindowsAndTabs();
+    } catch (err) {
+      console.error('Merge All failed:', err);
+      alert('Merge All failed');
+    }
+  };
+
+  splitBtn.onclick = async () => {
+    // Ensure UI window id is up-to-date (UI tab might have moved)
+    await refreshUiWindowId();
     if (blueSelection.length === 0) {
       alert('No tabs selected');
       return;
     }
-    openModalSplit();
+    try {
+      // Take all blue selected tabs
+      const tabsToMove = [...blueSelection];
+      // Create new window with first tab
+      const firstTabId = tabsToMove.shift();
+      const newWin = await new Promise(resolve => {
+        chrome.windows.create({ tabId: firstTabId, state: 'normal' }, w => resolve(w));
+      });
+      // Move remaining tabs to new window
+      if (tabsToMove.length > 0) {
+        await chrome.tabs.move(tabsToMove, { windowId: newWin.id, index: -1 });
+      }
+      // Clear selection
+      blueSelection = [];
+      renderWindowContent();
+      loadWindowsAndTabs();
+    } catch (err) {
+      console.error('Split failed:', err);
+      alert('Split failed');
+    }
   };
 }
 
