@@ -665,3 +665,4 @@ chrome.windows.onRemoved.addListener(() => {
 
 // Refresh every 2 seconds to show updated data
 // Removed polling: UI updates are driven by tab/window events and snapshot diffs
+

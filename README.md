@@ -1,4 +1,4 @@
-# Move All Tabs (Chrome extension)
+# Tab Manager (Chrome extension)
 
 Lightweight Chrome extension to help merge and split tabs between windows using a compact UI.
 
