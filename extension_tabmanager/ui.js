@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+document.body.classList.add('user-select-none'); // prevent text selection during drag operations
+
 /**
  * Handle keyboard shortcuts for the extension UI.
  * Clears all selections and resets merge mode when Escape is pressed.

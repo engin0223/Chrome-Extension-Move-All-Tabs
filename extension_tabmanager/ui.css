@@ -10,6 +10,13 @@ body {
   overflow: hidden;
 }
 
+.user-select-none {
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+/Edge */
+  user-select: none;         /* Standard */
+}
+
 .window-viewer-container {
   display: flex;
   flex-direction: column;
