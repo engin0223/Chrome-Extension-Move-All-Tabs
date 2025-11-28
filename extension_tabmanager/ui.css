@@ -265,6 +265,11 @@ body {
   word-break: break-all;
 }
 
+.page-card.dimmed {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
 .empty-state {
   display: flex;
   align-items: center;

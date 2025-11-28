@@ -15,6 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    if (isMoveDragging) {
+      // cancel move-drag
+      isMoveDragging = false;
+      if (moveGhost && moveGhost.parentNode) moveGhost.parentNode.removeChild(moveGhost);
+      moveGhost = null;
+      if (insertionPlaceholder && insertionPlaceholder.parentNode) insertionPlaceholder.parentNode.removeChild(insertionPlaceholder);
+      insertionPlaceholder = null;
+      // un-dim all cards
+      Array.from(document.querySelectorAll('.page-card.dimmed')).forEach(c => c.classList.remove('dimmed'));
+    }
+
     blueSelection = [];
     redSelection = [];
     yellowSelection = [];
@@ -56,6 +67,10 @@ let isDragging = false;
 let dragStart = null;
 let marqueeEl = null;
 let dragWasActive = false; // suppress click after a drag
+
+let isMoveDragging = false;
+let moveGhost = null;
+let insertionPlaceholder = null;
 
 /**
  * Feature flag for move-tabs experimental feature
@@ -718,13 +733,10 @@ function attachDragSelectionHandlers() {
   const container = document.getElementById('windowContent');
   if (!container) return;
   // Drag-to-select marquee vs dragging selected tabs to move
-  let isMoveDragging = false;
-  let moveGhost = null;
   let moveDragStart = null;
   let moveDirection = 0; // -1 left, 1 right
   let currentTargetCard = null;
   let currentInsertIndex = -1;
-  let insertionPlaceholder = null;
   let hoverWindowTimer = null;
   let lastHoverWindowId = null;
 
@@ -738,15 +750,24 @@ function attachDragSelectionHandlers() {
       const tabId = Number(clickedCard.dataset.tabId);
       // if clicking a card that is already part of blueSelection, start a move-drag (only if feature enabled)
       if (blueSelection.includes(tabId) && moveTabsEnabled) {
-        isMoveDragging = true;
-        moveDragStart = { x: e.clientX, y: e.clientY };
-        dragWasActive = false;
-        moveDirection = 0;
-        currentTargetCard = null;
-        currentInsertIndex = -1;
 
-        // create ghost container and shallow clones of selected page cards
-        moveGhost = document.createElement('div');
+        let dragStarted = false;
+        const dragStartThreshold = 5; // pixels
+        moveDragStart = { x: e.clientX, y: e.clientY };
+
+        const onMouseMove = (ev) => {
+          const dx = Math.abs(ev.clientX - moveDragStart.x);
+          const dy = Math.abs(ev.clientY - moveDragStart.y);
+          if ((dx > dragStartThreshold || dy > dragStartThreshold) && !dragStarted) {
+            dragStarted = true;
+            isMoveDragging = true;
+            dragWasActive = false;
+            moveDirection = 0;
+            currentTargetCard = null;
+            currentInsertIndex = -1;
+
+            // create ghost container and shallow clones of selected page cards
+            moveGhost = document.createElement('div');
         moveGhost.className = 'drag-ghost';
         moveGhost.style.position = 'fixed';
         moveGhost.style.pointerEvents = 'none';
@@ -765,13 +786,27 @@ function attachDragSelectionHandlers() {
             clone.style.margin = '0';
             clone.style.width = `${Math.min(orig.getBoundingClientRect().width, 340)}px`;
             moveGhost.appendChild(clone);
-            // hide original while dragging
-            orig.style.display = 'none';
+            // dim original while dragging
+            orig.classList.add('dimmed');
           }
         });
 
         document.body.appendChild(moveGhost);
-        e.preventDefault();
+            e.preventDefault();
+          }
+        };
+
+        const onMouseUp = () => {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+          if (!isMoveDragging) {
+            // treat as a click
+          }
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+
         return;
       }
     }
@@ -848,22 +883,29 @@ function attachDragSelectionHandlers() {
             insertionPlaceholder = document.createElement('div');
             insertionPlaceholder.className = 'insertion-placeholder';
           }
-          // determine where to insert among page-card elements
-          const cards = Array.from(container.querySelectorAll('.page-card'));
-          const ref = cards[currentInsertIndex] || null;
-          if (!cards[currentInsertIndex+1] !== null) {
-            if (ref.parentNode !== container || container.children[currentInsertIndex] !== insertionPlaceholder) {
-              container.insertBefore(insertionPlaceholder, ref);
-            } else {
-              const ref2 = cards[currentInsertIndex] || null;
-              container.insertBefore(insertionPlaceholder, ref);
-              // append at end
-              console.log(currentInsertIndex);
-              //if (insertionPlaceholder.parentNode !== container) container.appendChild(insertionPlaceholder);
+          // determine where to insert among page-card elements that are visible
+          const visibleCards = Array.from(container.querySelectorAll('.page-card:not(.dimmed)'));
+
+          let visualInsertIndex = currentInsertIndex;
+          const srcWindowId = getWindowIdForTabs(blueSelection);
+          if (srcWindowId === activeWindowId) {
+            const win = windowsData.find(w => w.id === srcWindowId);
+            if (win) {
+              let dimmedBefore = 0;
+              for (let i = 0; i < currentInsertIndex && i < win.tabs.length; i++) {
+                if (blueSelection.includes(win.tabs[i].id)) {
+                  dimmedBefore++;
+                }
+              }
+              visualInsertIndex -= dimmedBefore;
             }
+          }
+
+          const ref = visibleCards[visualInsertIndex] || null;
+          if (ref) {
+            container.insertBefore(insertionPlaceholder, ref);
           } else {
-            // append at end
-            if (insertionPlaceholder.parentNode !== container) container.appendChild(insertionPlaceholder);
+            container.appendChild(insertionPlaceholder);
           }
         }
       }
@@ -931,11 +973,7 @@ function attachDragSelectionHandlers() {
       Array.from(document.querySelectorAll('.page-card.insert-before')).forEach(c => c.classList.remove('insert-before'));
       Array.from(document.querySelectorAll('.page-card.insert-after')).forEach(c => c.classList.remove('insert-after'));
 
-      // always restore hidden originals (they were hidden while dragging)
-      blueSelection.forEach(id => {
-        const orig = container.querySelector(`.page-card[data-tab-id="${id}"]`);
-        if (orig) orig.style.display = '';
-      });
+      let moveSuccessful = false;
 
       // remove insertion placeholder if present
       if (insertionPlaceholder && insertionPlaceholder.parentNode) insertionPlaceholder.parentNode.removeChild(insertionPlaceholder);
@@ -962,15 +1000,9 @@ function attachDragSelectionHandlers() {
                     beforeCount++;
                   }
                 }
-                index = Math.max(0, index + beforeCount);
+                index = Math.max(0, index - beforeCount);
               }
             }
-
-            // restore original cards visibility before moving (UI will refresh later)
-            blueSelection.forEach(id => {
-              const orig = container.querySelector(`.page-card[data-tab-id="${id}"]`);
-              if (orig) orig.style.display = '';
-            });
 
             await chrome.tabs.move(tabIds, { windowId: targetWindowId, index });
 
@@ -989,8 +1021,14 @@ function attachDragSelectionHandlers() {
               if (orig) orig.style.display = '';
             });
             loadWindowsAndTabs();
+            moveSuccessful = true;
           }
         })();
+      }
+
+      if (!moveSuccessful) {
+        // if move was not performed, un-dim the cards
+        Array.from(document.querySelectorAll('.page-card.dimmed')).forEach(c => c.classList.remove('dimmed'));
       }
 
       return;
