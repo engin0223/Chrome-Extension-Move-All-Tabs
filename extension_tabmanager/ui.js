@@ -9,7 +9,29 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+
+/**
+ * Add "New Window" button to the top controls
+ * and prevent text selection during drag operations
+ */
 document.body.classList.add('user-select-none'); // prevent text selection during drag operations
+const controls = document.getElementById('windowControls');
+const newBtn = document.createElement('button');
+newBtn.className = 'window-tab-new-btn';
+newBtn.innerHTML = '✛';
+newBtn.title = 'New window';
+newBtn.addEventListener('click', async (e) => {
+  e.stopPropagation(); // Prevent card selection when creating new window
+  try {
+    await chrome.windows.create({ state: 'normal' });
+    loadWindowsAndTabs();
+  } catch (error) {
+    console.error('Error creating new window:', error);
+  }
+});
+
+controls.insertBefore(newBtn, controls.firstChild);
+
 
 /**
  * Handle keyboard shortcuts for the extension UI.
@@ -172,7 +194,22 @@ function renderWindowTabs() {
       }
     }
     tab.className = classes.join(' ');
-    
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'window-tab-close-btn';
+
+    closeBtn.innerHTML = '✕';
+    closeBtn.title = 'Close window';
+    closeBtn.addEventListener('click', async (e) => {
+      e.stopPropagation(); // Prevent card selection when closing
+      try {
+        await chrome.windows.remove(windowData.id);
+        loadWindowsAndTabs();
+      } catch (error) {
+        console.error('Error closing window:', error);
+      }
+    });
+
     
     const icon = document.createElement('span');
     icon.className = 'window-tab-icon';
@@ -184,6 +221,7 @@ function renderWindowTabs() {
     
     tab.appendChild(icon);
     tab.appendChild(label);
+    tab.appendChild(closeBtn);
     // expose window id for drag hover detection
     tab.dataset.windowId = windowData.id;
     
@@ -212,7 +250,6 @@ function renderWindowTabs() {
     tabsList.appendChild(tab);
   });
   // ensure controls reflect active window
-  attachTopControls();
 }
 
 /**
@@ -227,6 +264,7 @@ function attachTopControls() {
   const mergeAllBtn = document.getElementById('mergeAllBtn');
   const splitBtn = document.getElementById('splitBtn');
   controls.setAttribute('aria-hidden', 'false');
+
   
   mergeBtn.onclick = async () => {
     // Ensure we know which window the UI currently lives in (may have moved)
