@@ -210,7 +210,7 @@ function renderWindowTabs() {
       }
     });
 
-    
+
     const icon = document.createElement('span');
     icon.className = 'window-tab-icon';
     icon.textContent = '📁';
@@ -439,88 +439,6 @@ async function splitCurrentWindow(windowId, option = 'others-to-new') {
     await chrome.windows.create({ tabId: activeTab.id, state: 'normal' });
   }
   loadWindowsAndTabs();
-}
-
-/**
- * Opens a modal dialog for choosing how to split the active window.
- * Provides options to move other tabs to a new window or move the active tab to a new window.
- * @returns {void}
- */
-function openModalSplit() {
-  const modalRoot = document.getElementById('modalRoot');
-  modalRoot.innerHTML = '';
-  modalRoot.classList.add('active');
-
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <h3>Split Window ${activeWindowId}</h3>
-    <div style="font-size:12px;color:#aaa">Choose how to split this window</div>
-    <div style="margin-top:10px">
-      <button id="optKeepActive" class="btn primary">Move other tabs to new window</button>
-      <button id="optMoveActive" class="btn ghost">Move active tab to new window</button>
-    </div>
-    <div class="modal-actions">
-      <button id="cancelSplit" class="btn ghost">Cancel</button>
-    </div>
-  `;
-
-  modalRoot.appendChild(modal);
-
-  document.getElementById('optKeepActive').onclick = async () => { await splitCurrentWindow(activeWindowId, 'others-to-new'); closeModal(); };
-  document.getElementById('optMoveActive').onclick = async () => { await splitCurrentWindow(activeWindowId, 'active-to-new'); closeModal(); };
-  document.getElementById('cancelSplit').onclick = () => closeModal();
-}
-
-/**
- * Opens a generic modal dialog with a title, list of items, and a selection callback.
- * Used to display options to the user and handle their choice.
- * @param {string} title - The title to display in the modal
- * @param {Array<{id: string, label: string}>} items - Array of selectable items with id and label
- * @param {Function} onSelect - Callback function called with the selected item's id
- * @returns {void}
- */
-function openModal(title, items, onSelect) {
-  const modalRoot = document.getElementById('modalRoot');
-  modalRoot.innerHTML = '';
-  modalRoot.classList.add('active');
-
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  const titleEl = document.createElement('h3');
-  titleEl.textContent = title;
-  modal.appendChild(titleEl);
-
-  const list = document.createElement('div');
-  list.className = 'modal-list';
-  items.forEach(it => {
-    const btn = document.createElement('button');
-    btn.textContent = it.label;
-    btn.onclick = () => onSelect(it.id);
-    list.appendChild(btn);
-  });
-  modal.appendChild(list);
-
-  const actions = document.createElement('div');
-  actions.className = 'modal-actions';
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'btn ghost';
-  closeBtn.textContent = 'Close';
-  closeBtn.onclick = () => closeModal();
-  actions.appendChild(closeBtn);
-  modal.appendChild(actions);
-
-  modalRoot.appendChild(modal);
-}
-
-/**
- * Closes the currently open modal dialog by removing the active class and clearing its content.
- * @returns {void}
- */
-function closeModal() {
-  const modalRoot = document.getElementById('modalRoot');
-  modalRoot.classList.remove('active');
-  modalRoot.innerHTML = '';
 }
 
 /**
